@@ -55,6 +55,10 @@ func GetFile(s s3_storage.S3Storage) http.HandlerFunc {
 	}
 }
 
+type PutFileResp struct {
+	Key string `json:"key"`
+}
+
 func PutFile(s s3_storage.S3Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("file")
@@ -73,7 +77,12 @@ func PutFile(s s3_storage.S3Storage) http.HandlerFunc {
 			return
 		}
 
+		respBody, err := json.Marshal(&PutFileResp{
+			Key: key,
+		})
+
 		w.WriteHeader(http.StatusCreated)
+		w.Write(respBody)
 	}
 }
 

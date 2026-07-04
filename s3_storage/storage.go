@@ -60,6 +60,7 @@ func (s *s3Storage) PutObject(ctx context.Context, bucket, key string, file io.R
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
