@@ -9,9 +9,9 @@ import (
 func InitRouter(storage s3_storage.S3Storage) http_server.HTTPMux {
 	mux := http_server.NewMux()
 
-	mux.HandleFunc("GET /files/{bucket}", s3_storage.GetFile(storage))
-	mux.HandleFunc("POST /files/{bucket}", s3_storage.PutFile(storage))
-	mux.HandleFunc("DELETE /files/{bucket}", s3_storage.DeleteFile(storage))
+	mux.HandleFunc("GET /files/{bucket}", GetFile(storage))
+	mux.HandleFunc("POST /files/{bucket}", PutFile(storage))
+	mux.HandleFunc("DELETE /files/{bucket}", DeleteFile(storage))
 
 	mux.HandleFunc("GET /healthz", Healthz)
 

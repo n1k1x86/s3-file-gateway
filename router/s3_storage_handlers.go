@@ -1,4 +1,4 @@
-package s3_storage
+package router
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"s3-file-gateway/s3_storage"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -25,7 +26,7 @@ type ErrResp struct {
 	Err string `json:"err"`
 }
 
-func GetFile(s S3Storage) http.HandlerFunc {
+func GetFile(s s3_storage.S3Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucket := r.PathValue("bucket")
 		key := r.URL.Query().Get("key")
@@ -59,7 +60,7 @@ func GetFile(s S3Storage) http.HandlerFunc {
 	}
 }
 
-func PutFile(s S3Storage) http.HandlerFunc {
+func PutFile(s s3_storage.S3Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("file")
 		if err != nil {
@@ -81,7 +82,7 @@ func PutFile(s S3Storage) http.HandlerFunc {
 	}
 }
 
-func DeleteFile(s S3Storage) http.HandlerFunc {
+func DeleteFile(s s3_storage.S3Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucket := r.PathValue("bucket")
 		key := r.URL.Query().Get("key")

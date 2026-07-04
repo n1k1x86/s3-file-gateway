@@ -1,4 +1,4 @@
-package s3_storage
+package router
 
 import (
 	"bytes"
