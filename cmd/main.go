@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os/signal"
+	"s3-file-gateway/config"
 	"s3-file-gateway/router"
 	"syscall"
 	"time"
@@ -12,11 +13,16 @@ import (
 )
 
 func main() {
-	cfg := http_server.NewHTTPServerConfig().WithAddr("localhost:8080").WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serverCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
 
 	mux := router.InitRouter()
 
-	s := http_server.NewHTTPServer(cfg).WithMux(mux)
+	s := http_server.NewHTTPServer(serverCfg).WithMux(mux)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()

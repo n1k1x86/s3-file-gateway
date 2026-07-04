@@ -9,5 +9,7 @@ func InitRouter() http_server.HTTPMux {
 	mux.HandleFunc("POST /files", PostFiles)
 	mux.HandleFunc("DELETE /files/{id}", DeleteFiles)
 
+	mux.HandleFunc("GET /healthz", Healthz)
+
 	return mux
 }
