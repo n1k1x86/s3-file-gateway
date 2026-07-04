@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"s3-file-gateway/s3_storage"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 func handleError(err error, w http.ResponseWriter, statusCode int) {
@@ -37,10 +35,7 @@ func GetFile(s s3_storage.S3Storage) http.HandlerFunc {
 
 		reader, contentType, err := s.GetObject(r.Context(), bucket, key)
 		if err != nil {
-			var noSuchBucketErr *types.NoSuchBucket
-			var noFileErr *types.NoSuchKey
-
-			if errors.As(err, &noSuchBucketErr) || errors.As(err, &noFileErr) {
+			if errors.As(err, &s3_storage.ErrNoSuchBucket) || errors.As(err, &s3_storage.ErrNoSuchKey) {
 				handleError(err, w, http.StatusNotFound)
 				return
 			}
@@ -94,10 +89,7 @@ func DeleteFile(s s3_storage.S3Storage) http.HandlerFunc {
 
 		err := s.DeleteObject(r.Context(), bucket, key)
 		if err != nil {
-			var noSuchBucketErr *types.NoSuchBucket
-			var noFileErr *types.NoSuchKey
-
-			if errors.As(err, &noSuchBucketErr) || errors.As(err, &noFileErr) {
+			if errors.As(err, &s3_storage.ErrNoSuchBucket) || errors.As(err, &s3_storage.ErrNoSuchKey) {
 				handleError(err, w, http.StatusNotFound)
 				return
 			}

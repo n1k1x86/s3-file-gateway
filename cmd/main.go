@@ -22,14 +22,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	serverCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
-
 	s3Storage, err := s3_storage.NewS3Storage(ctx, cfg.S3Key, cfg.S3Secret, cfg.S3Region, cfg.S3Endpoint)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	mux := router.InitRouter(s3Storage)
+
+	serverCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
 
 	s := http_server.NewHTTPServer(serverCfg).WithMux(mux)
 
