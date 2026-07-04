@@ -206,6 +206,36 @@ The current test suite covers HTTP handler behavior with a fake storage implemen
 - S3 not-found mapping;
 - response body closing after download.
 
+Integration tests are disabled by default because they require a running S3-compatible backend.
+
+To run them against local MinIO:
+
+```bash
+docker compose up -d minio
+```
+
+Then create a bucket or let the test create a temporary one, and run:
+
+```bash
+S3_INTEGRATION_TESTS=1 \
+S3_ENDPOINT=http://localhost:9000 \
+S3_REGION=us-east-1 \
+S3_KEY=minioadmin \
+S3_SECRET=minioadmin \
+go test ./s3_storage
+```
+
+On PowerShell:
+
+```powershell
+$env:S3_INTEGRATION_TESTS="1"
+$env:S3_ENDPOINT="http://localhost:9000"
+$env:S3_REGION="us-east-1"
+$env:S3_KEY="minioadmin"
+$env:S3_SECRET="minioadmin"
+go test ./s3_storage
+```
+
 ## 🗂️ Project Structure
 
 ```text

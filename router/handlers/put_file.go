@@ -46,7 +46,7 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 			return
 		}
 
-		err = s.PutObject(r.Context(), bucket, key, file, header.Header.Get("Content-Type"))
+		err = s.PutObject(r.Context(), bucket, key, file, header.Header.Get("Content-Type"), header.Size)
 		if err != nil {
 			logger.Error("uploading file", zap.Error(err))
 			handleError(err, w, http.StatusBadRequest)

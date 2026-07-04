@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -45,11 +46,12 @@ func (s *s3Storage) GetObject(ctx context.Context, bucket, key string) (io.ReadC
 	return o.Body, contentType, nil
 }
 
-func (s *s3Storage) PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string) error {
+func (s *s3Storage) PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string, size int64) error {
 	input := &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		Body:   file,
+		Bucket:        aws.String(bucket),
+		Key:           aws.String(key),
+		Body:          file,
+		ContentLength: aws.Int64(size),
 	}
 
 	if contentType != "" {
@@ -97,6 +99,8 @@ func NewS3Storage(ctx context.Context, key, secret, region, endpoint string) (S3
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = &endpoint
 		o.UsePathStyle = true
+		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+		o.APIOptions = append(o.APIOptions, awsv4.SwapComputePayloadSHA256ForUnsignedPayloadMiddleware)
 	})
 
 	return &s3Storage{

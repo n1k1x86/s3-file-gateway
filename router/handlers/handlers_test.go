@@ -16,7 +16,7 @@ import (
 
 type fakeStorage struct {
 	getObject func(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
-	putObject func(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string) error
+	putObject func(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string, size int64) error
 	delObject func(ctx context.Context, bucket, key string) error
 }
 
@@ -24,8 +24,8 @@ func (s fakeStorage) GetObject(ctx context.Context, bucket, key string) (io.Read
 	return s.getObject(ctx, bucket, key)
 }
 
-func (s fakeStorage) PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string) error {
-	return s.putObject(ctx, bucket, key, file, contentType)
+func (s fakeStorage) PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string, size int64) error {
+	return s.putObject(ctx, bucket, key, file, contentType, size)
 }
 
 func (s fakeStorage) DeleteObject(ctx context.Context, bucket, key string) error {
@@ -126,7 +126,7 @@ func TestPutFileSuccess(t *testing.T) {
 	}
 
 	storage := fakeStorage{
-		putObject: func(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string) error {
+		putObject: func(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string, size int64) error {
 			if bucket != "bucket" {
 				t.Fatalf("bucket = %q, want %q", bucket, "bucket")
 			}
@@ -142,6 +142,9 @@ func TestPutFileSuccess(t *testing.T) {
 			}
 			if contentType == "" {
 				t.Fatal("expected content type to be passed")
+			}
+			if size != int64(len("uploaded")) {
+				t.Fatalf("size = %d, want %d", size, len("uploaded"))
 			}
 			return nil
 		},
