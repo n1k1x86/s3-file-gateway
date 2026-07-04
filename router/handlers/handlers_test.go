@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"go.uber.org/zap"
 )
 
 type fakeStorage struct {
@@ -41,6 +43,11 @@ func (r *closeTracker) Close() error {
 }
 
 func TestGetFileSuccess(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	body := &closeTracker{Reader: bytes.NewReader([]byte("hello"))}
 	storage := fakeStorage{
 		getObject: func(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
@@ -58,7 +65,7 @@ func TestGetFileSuccess(t *testing.T) {
 	req.SetPathValue("bucket", "bucket")
 	rr := httptest.NewRecorder()
 
-	GetFile(storage).ServeHTTP(rr, req)
+	GetFile(storage, logger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
@@ -75,6 +82,11 @@ func TestGetFileSuccess(t *testing.T) {
 }
 
 func TestGetFileNotFound(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	storage := fakeStorage{
 		getObject: func(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
 			return nil, "", &types.NoSuchKey{}
@@ -85,7 +97,7 @@ func TestGetFileNotFound(t *testing.T) {
 	req.SetPathValue("bucket", "bucket")
 	rr := httptest.NewRecorder()
 
-	GetFile(storage).ServeHTTP(rr, req)
+	GetFile(storage, logger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusNotFound)
@@ -96,6 +108,10 @@ func TestGetFileNotFound(t *testing.T) {
 }
 
 func TestPutFileSuccess(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("file", "upload.txt")
@@ -136,7 +152,7 @@ func TestPutFileSuccess(t *testing.T) {
 	req.SetPathValue("bucket", "bucket")
 	rr := httptest.NewRecorder()
 
-	PutFile(storage).ServeHTTP(rr, req)
+	PutFile(storage, logger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusCreated)
@@ -144,6 +160,10 @@ func TestPutFileSuccess(t *testing.T) {
 }
 
 func TestDeleteFileSuccess(t *testing.T) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
 	storage := fakeStorage{
 		delObject: func(ctx context.Context, bucket, key string) error {
 			if bucket != "bucket" {
@@ -160,7 +180,7 @@ func TestDeleteFileSuccess(t *testing.T) {
 	req.SetPathValue("bucket", "bucket")
 	rr := httptest.NewRecorder()
 
-	DeleteFile(storage).ServeHTTP(rr, req)
+	DeleteFile(storage, logger).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusNoContent)

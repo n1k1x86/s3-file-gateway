@@ -11,9 +11,15 @@ import (
 	"time"
 
 	"github.com/n1k1x86/libs/http_server"
+	"go.uber.org/zap"
 )
 
 func main() {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
@@ -27,7 +33,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mux := router.InitRouter(s3Storage)
+	mux := router.InitRouter(s3Storage, logger)
 
 	serverCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
 

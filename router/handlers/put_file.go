@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"s3-file-gateway/s3_storage"
+
+	"go.uber.org/zap"
 )
 
 var ErrHttpMaxBytes *http.MaxBytesError
@@ -18,7 +20,7 @@ type PutFileResp struct {
 	Key string `json:"key"`
 }
 
-func PutFile(s s3_storage.S3Storage) http.HandlerFunc {
+func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
 

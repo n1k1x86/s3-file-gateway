@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"s3-file-gateway/s3_storage"
+
+	"go.uber.org/zap"
 )
 
-func DeleteFile(s s3_storage.S3Storage) http.HandlerFunc {
+func DeleteFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bucket := r.PathValue("bucket")
 		key := r.URL.Query().Get("key")
