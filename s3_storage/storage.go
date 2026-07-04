@@ -20,33 +20,43 @@ type s3Storage struct {
 	client *s3.Client
 }
 
-func (s *s3Storage) GetObject(ctx context.Context, bucket, key string) (io.Reader, error) {
+func (s *s3Storage) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
 	o, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if o == nil {
-		return nil, fmt.Errorf("aws object is nil\n")
+		return nil, "", fmt.Errorf("aws object is nil\n")
 	}
 
 	if o.Body == nil {
-		return nil, fmt.Errorf("aws object body is nil\n")
+		return nil, "", fmt.Errorf("aws object body is nil\n")
 	}
 
-	return o.Body, nil
+	contentType := "application/octet-stream"
+	if o.ContentType != nil {
+		contentType = *o.ContentType
+	}
+
+	return o.Body, contentType, nil
 }
 
 func (s *s3Storage) PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string) error {
-	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		Body:        file,
-		ContentType: aws.String(contentType),
-	})
+	input := &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   file,
+	}
+
+	if contentType != "" {
+		input.ContentType = aws.String(contentType)
+	}
+
+	_, err := s.client.PutObject(ctx, input)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"s3-file-gateway/config"
 	"s3-file-gateway/router"
+	"s3-file-gateway/s3_storage"
 	"syscall"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -20,12 +24,14 @@ func main() {
 
 	serverCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
 
-	mux := router.InitRouter()
+	s3Storage, err := s3_storage.NewS3Storage(ctx, cfg.S3Key, cfg.S3Secret, cfg.S3Region, cfg.S3Endpoint)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mux := router.InitRouter(s3Storage)
 
 	s := http_server.NewHTTPServer(serverCfg).WithMux(mux)
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	errChan := make(chan error, 1)
 
