@@ -27,8 +27,10 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			if errors.As(err, &ErrHttpMaxBytes) {
+				logger.Error("too large file uploaded")
 				handleError(err, w, http.StatusRequestEntityTooLarge)
 			}
+			logger.Error("reading form file", zap.Error(err))
 			handleError(err, w, http.StatusBadRequest)
 			return
 		}
@@ -39,6 +41,7 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 
 		err = s.PutObject(r.Context(), bucket, key, file, header.Header.Get("Content-Type"))
 		if err != nil {
+			logger.Error("uploading file", zap.Error(err))
 			handleError(err, w, http.StatusBadRequest)
 			return
 		}
@@ -47,7 +50,14 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 			Key: key,
 		})
 
+		if err != nil {
+			logger.Error("marshaling resp body", zap.Error(err))
+			handleError(err, w, http.StatusBadRequest)
+			return
+		}
+
 		w.WriteHeader(http.StatusCreated)
 		w.Write(respBody)
+		logger.Info("uploaded file", zap.String("bucket", bucket), zap.String("key", key))
 	}
 }
