@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"s3-file-gateway/s3_storage"
 
@@ -27,8 +28,9 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			if errors.As(err, &ErrHttpMaxBytes) {
-				logger.Error("too large file uploaded")
+				logger.Warn("too large file uploaded")
 				handleError(err, w, http.StatusRequestEntityTooLarge)
+				return
 			}
 			logger.Error("reading form file", zap.Error(err))
 			handleError(err, w, http.StatusBadRequest)
@@ -38,6 +40,11 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 
 		bucket := r.PathValue("bucket")
 		key := r.URL.Query().Get("key")
+		if key == "" {
+			logger.Warn("key is empty")
+			handleError(fmt.Errorf("key is empty"), w, http.StatusBadRequest)
+			return
+		}
 
 		err = s.PutObject(r.Context(), bucket, key, file, header.Header.Get("Content-Type"))
 		if err != nil {
@@ -45,6 +52,8 @@ func PutFile(s s3_storage.S3Storage, logger *zap.Logger) http.HandlerFunc {
 			handleError(err, w, http.StatusBadRequest)
 			return
 		}
+
+		w.Header().Add("Content-Type", "application/json")
 
 		respBody, err := json.Marshal(&PutFileResp{
 			Key: key,

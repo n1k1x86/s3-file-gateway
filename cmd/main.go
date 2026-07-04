@@ -12,13 +12,21 @@ import (
 
 	"github.com/n1k1x86/libs/http_server"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
-	logger, err := zap.NewProduction()
+	cfgZap := zap.NewProductionConfig()
+
+	cfgZap.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, err := cfgZap.Build(
+		zap.AddStacktrace(zap.DPanicLevel),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer logger.Sync()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
