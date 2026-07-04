@@ -217,7 +217,6 @@ docker compose up -d minio
 Then create a bucket or let the test create a temporary one, and run:
 
 ```bash
-S3_INTEGRATION_TESTS=1 \
 S3_ENDPOINT=http://localhost:9000 \
 S3_REGION=us-east-1 \
 S3_KEY=minioadmin \
@@ -228,7 +227,6 @@ go test ./s3_storage
 On PowerShell:
 
 ```powershell
-$env:S3_INTEGRATION_TESTS="1"
 $env:S3_ENDPOINT="http://localhost:9000"
 $env:S3_REGION="us-east-1"
 $env:S3_KEY="minioadmin"
