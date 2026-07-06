@@ -1,8 +1,10 @@
 # S3 File Gateway
 
-HTTP gateway for working with S3-compatible object storage.
+[Русская версия](README.ru.md)
 
-The service exposes a small REST API for uploading, downloading, and deleting files in S3 or MinIO. It is intentionally thin: HTTP handlers validate request parameters, apply upload limits, stream file data, and delegate storage operations to a dedicated S3 adapter.
+Small HTTP gateway for working with S3-compatible object storage.
+
+The service provides a thin REST API for uploading, downloading, and deleting files in S3 or MinIO. HTTP handlers take care of request validation, upload limits, streaming, response codes, and JSON errors. Storage-specific logic stays in a dedicated S3 adapter.
 
 ## ✨ What It Does
 
@@ -14,8 +16,9 @@ The service exposes a small REST API for uploading, downloading, and deleting fi
 - Limits upload request size to protect the service from oversized bodies.
 - Returns JSON error responses.
 - Uses structured logging with `zap`.
-- Supports local `.env` files for development and runtime environment variables for Docker.
-- Runs with Docker Compose using MinIO as the S3-compatible backend.
+- Exposes health, readiness, and Prometheus metrics endpoints.
+- Runs locally with Docker Compose, MinIO, PostgreSQL, Prometheus, and Grafana.
+- Supports local `.env` files for development and external environment variables for Docker.
 
 ## 🔌 API
 
@@ -32,6 +35,30 @@ GET /healthz
 ```
 
 Returns `200 OK` when the HTTP server is alive.
+
+### Readiness Check
+
+```http
+GET /readyz
+```
+
+Checks whether the gateway can reach the configured S3-compatible storage and access the readiness bucket.
+
+> The current readiness bucket is intentionally fixed in code while the project is still evolving.
+
+### Metrics
+
+```http
+GET /metrics
+```
+
+Exposes Prometheus metrics from the Go runtime, process collector, and HTTP handler.
+
+Prometheus scrapes the gateway inside the Docker network at:
+
+```text
+app:8000
+```
 
 ### Upload File
 
@@ -128,6 +155,7 @@ Common statuses:
 | `404 Not Found` | Bucket or object was not found in S3 |
 | `413 Payload Too Large` | Upload request exceeded the configured size limit |
 | `500 Internal Server Error` | Unexpected storage or streaming error |
+| `503 Service Unavailable` | Readiness check failed |
 
 ## ⚙️ Configuration
 
@@ -136,7 +164,7 @@ The application reads configuration from environment variables. A local `.env` f
 | Variable | Required | Description | Example |
 | --- | --- | --- | --- |
 | `HTTP_ADDR` | No | HTTP listen address | `0.0.0.0:8000` |
-| `S3_ENDPOINT` | Yes | S3-compatible endpoint | `http://minio:9000` |
+| `S3_ENDPOINT` | Yes | S3-compatible endpoint | `http://s3gw-minio:9000` |
 | `S3_REGION` | Yes | S3 region | `us-east-1` |
 | `S3_KEY` | Yes | Access key | `minioadmin` |
 | `S3_SECRET` | Yes | Secret key | `minioadmin` |
@@ -144,14 +172,19 @@ The application reads configuration from environment variables. A local `.env` f
 Example `.env` for local Docker Compose:
 
 ```env
-HTTP_ADDR=0.0.0.0:8000
-S3_ENDPOINT=http://minio:9000
-S3_REGION=us-east-1
-S3_KEY=minioadmin
-S3_SECRET=minioadmin
+DB_USER=gateway
+DB_PASSWORD=verysecret
+DB_NAME=gateway
 
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
+
+S3_KEY=minioadmin
+S3_SECRET=minioadmin
+S3_REGION=us-east-1
+S3_ENDPOINT=http://s3gw-minio:9000
+
+HTTP_ADDR=0.0.0.0:8000
 ```
 
 The `.env` file is passed to the container by Compose and is excluded from the Docker build context by `.dockerignore`.
@@ -169,10 +202,33 @@ Services:
 | Service | URL |
 | --- | --- |
 | Gateway | `http://localhost:8000` |
+| Gateway metrics | `http://localhost:8000/metrics` |
 | MinIO S3 API | `http://localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
+| Prometheus | `http://localhost:9090` |
+| Grafana | `http://localhost:3000` |
+| PostgreSQL | `localhost:5432` |
 
 Create a bucket in MinIO before uploading files. You can do it through the MinIO Console or any S3-compatible client.
+
+## 📊 Observability
+
+The gateway exposes Prometheus metrics at `/metrics`.
+
+The Compose stack includes:
+
+- Prometheus scraping `app:8000`;
+- Grafana for dashboards;
+- standard Go runtime and process metrics out of the box.
+
+Useful metrics available immediately:
+
+| Metric | Meaning |
+| --- | --- |
+| `go_goroutines` | Current number of goroutines |
+| `go_memstats_heap_alloc_bytes` | Heap memory currently allocated |
+| `process_cpu_seconds_total` | CPU time consumed by the process |
+| `process_resident_memory_bytes` | Resident memory used by the process |
 
 ## 🧰 Running Without Docker
 
@@ -206,7 +262,7 @@ The current test suite covers HTTP handler behavior with a fake storage implemen
 - S3 not-found mapping;
 - response body closing after download.
 
-Integration tests are disabled by default because they require a running S3-compatible backend.
+Integration tests require a running S3-compatible backend.
 
 To run them against local MinIO:
 
@@ -214,7 +270,7 @@ To run them against local MinIO:
 docker compose up -d minio
 ```
 
-Then create a bucket or let the test create a temporary one, and run:
+Then run:
 
 ```bash
 S3_ENDPOINT=http://localhost:9000 \
@@ -234,24 +290,38 @@ $env:S3_SECRET="minioadmin"
 go test ./s3_storage
 ```
 
+The integration test creates a temporary bucket, uploads an object, downloads it, deletes it, and verifies that the deleted key is no longer available.
+
 ## 🗂️ Project Structure
 
 ```text
 cmd/
-  main.go                 Application entry point and dependency wiring
+  main.go                   Application entry point and dependency wiring
 
 config/
-  config.go               Environment-based configuration
+  config.go                 Environment-based configuration
 
 router/
-  router.go               HTTP route registration
-  healthz.go              Health endpoint
-  handlers/               HTTP handlers and handler tests
+  router.go                 HTTP route registration
+  handlers/
+    healthz.go              Health endpoint
+    readyz.go               Readiness endpoint
+    get_file.go             Download handler
+    put_file.go             Upload handler
+    delete_file.go          Delete handler
+    helpers.go              Shared HTTP response helpers
+    handlers_test.go        Handler unit tests
 
 s3_storage/
-  storage.go              S3-compatible storage adapter
-  interface.go            Storage interface used by handlers
-  errors.go               S3-specific error helpers
+  storage.go                S3-compatible storage adapter
+  interface.go              Storage interface used by handlers
+  errors.go                 S3-specific error helpers
+  storage_integration_test.go
+                            MinIO/S3 integration test
+
+Dockerfile                  Multi-stage image build
+compose.yaml                Local stack: app, MinIO, PostgreSQL, Prometheus, Grafana
+prometheus.yml              Prometheus scrape config
 ```
 
 ## 🧠 Design Notes
@@ -278,12 +348,14 @@ This keeps the codebase small, testable, and easy to extend without adding unnec
 - Files are streamed to and from storage instead of being fully buffered in memory.
 - The final Docker image runs as a non-root user.
 - Logs are structured JSON logs through `zap`.
+- The Docker image has a `/healthz` healthcheck.
+- Prometheus and Grafana are included for local observability.
 
 Potential next steps:
 
 - authentication and authorization;
-- bucket creation workflow or bootstrap script;
-- integration tests with MinIO;
 - request logging middleware;
-- metrics and tracing;
+- custom HTTP and S3 metrics;
+- bucket creation workflow or bootstrap script;
+- PostgreSQL-backed file metadata;
 - more precise storage error mapping for upload failures.
