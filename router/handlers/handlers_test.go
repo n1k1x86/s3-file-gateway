@@ -31,6 +31,9 @@ func (s fakeStorage) PutObject(ctx context.Context, bucket, key string, file io.
 func (s fakeStorage) DeleteObject(ctx context.Context, bucket, key string) error {
 	return s.delObject(ctx, bucket, key)
 }
+func (s fakeStorage) IsReady(ctx context.Context, bucket string) error {
+	return nil
+}
 
 type closeTracker struct {
 	*bytes.Reader

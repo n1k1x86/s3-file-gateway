@@ -12,8 +12,7 @@ const (
 )
 
 type Config struct {
-	HTTPAddr string `env:"HTTP_ADDR"`
-
+	HTTPAddr   string `env:"HTTP_ADDR"`
 	S3Key      string `env:"S3_KEY"`
 	S3Secret   string `env:"S3_SECRET"`
 	S3Region   string `env:"S3_REGION"`

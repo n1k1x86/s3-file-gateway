@@ -9,4 +9,5 @@ type S3Storage interface {
 	GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error)
 	PutObject(ctx context.Context, bucket, key string, file io.ReadCloser, contentType string, size int64) error
 	DeleteObject(ctx context.Context, bucket, key string) error
+	IsReady(ctx context.Context, bucket string) error
 }

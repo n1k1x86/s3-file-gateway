@@ -77,6 +77,16 @@ func (s *s3Storage) DeleteObject(ctx context.Context, bucket, key string) error 
 	return nil
 }
 
+func (s *s3Storage) IsReady(ctx context.Context, bucket string) error {
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func NewS3Storage(ctx context.Context, key, secret, region, endpoint string) (S3Storage, error) {
 	s3Ctx, s3Cancel := context.WithTimeout(ctx, contextTimeout)
 	defer s3Cancel()
