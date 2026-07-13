@@ -42,7 +42,7 @@ func main() {
 	}
 
 	mux := router.InitRouter(s3Storage, logger)
-	httpServerCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 10)
+	httpServerCfg := http_server.NewHTTPServerConfig().WithAddr(cfg.HTTPAddr).WithReadTimeout(time.Second * 10).WithWriteTimeout(time.Second * 10).WithIdleTimeout(time.Second * 120)
 	s := http_server.NewHTTPServer(httpServerCfg).WithMux(mux)
 
 	errChan := make(chan error, 1)

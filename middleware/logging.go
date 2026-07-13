@@ -11,7 +11,7 @@ import (
 func Logging(logger *zap.Logger) http_server.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Info(r.Method + " " + r.Pattern)
+			logger.Info(r.Method + " " + r.RequestURI)
 			next.ServeHTTP(w, r)
 		})
 	}
