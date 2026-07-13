@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/http"
+	"s3-file-gateway/middleware"
 	"s3-file-gateway/router/handlers"
 	"s3-file-gateway/s3_storage"
 
@@ -9,12 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitRouter(storage s3_storage.S3Storage, logger *zap.Logger) http_server.HTTPMux {
+func InitRouter(storage s3_storage.S3Storage, logger *zap.Logger) http.Handler {
 	mux := http_server.NewMux()
 
-	mux.HandleFunc("GET /files/{bucket}", handlers.GetFile(storage, logger))
-	mux.HandleFunc("POST /files/{bucket}", handlers.PutFile(storage, logger))
-	mux.HandleFunc("DELETE /files/{bucket}", handlers.DeleteFile(storage, logger))
+	s3 := mux.Group("/s3", middleware.Logging(logger))
+
+	s3.HandleFunc("GET /files/{bucket}", handlers.GetFile(storage, logger))
+	s3.HandleFunc("POST /files/{bucket}", handlers.PutFile(storage, logger))
+	s3.HandleFunc("DELETE /files/{bucket}", handlers.DeleteFile(storage, logger))
 
 	mux.HandleFunc("GET /healthz", handlers.Healthz)
 	mux.HandleFunc("GET /readyz", handlers.Readyz(storage, logger))

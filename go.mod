@@ -2,7 +2,7 @@ module s3-file-gateway
 
 go 1.25.5
 
-require github.com/n1k1x86/libs v0.0.2
+require github.com/n1k1x86/libs v0.0.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
