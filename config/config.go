@@ -17,6 +17,8 @@ type Config struct {
 	S3Secret   string `env:"S3_SECRET"`
 	S3Region   string `env:"S3_REGION"`
 	S3Endpoint string `env:"S3_ENDPOINT"`
+
+	RedisPassword string `env:"REDIS_PASSWORD"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -47,11 +49,17 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("s3 endpoint is empty")
 	}
 
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		return nil, fmt.Errorf("redis password is empty")
+	}
+
 	return &Config{
-		HTTPAddr:   httpAddr,
-		S3Key:      s3Key,
-		S3Secret:   s3Secret,
-		S3Region:   s3Region,
-		S3Endpoint: s3Endpoint,
+		HTTPAddr:      httpAddr,
+		S3Key:         s3Key,
+		S3Secret:      s3Secret,
+		S3Region:      s3Region,
+		S3Endpoint:    s3Endpoint,
+		RedisPassword: redisPassword,
 	}, nil
 }
